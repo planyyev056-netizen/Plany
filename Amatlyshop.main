@@ -1,0 +1,1196 @@
+import 'package:flutter/material.dart';
+
+
+void main() {
+
+runApp(const EcommerceApp());
+
+}
+
+
+class EcommerceApp extends StatelessWidget {
+
+const EcommerceApp({Super.key});
+
+
+@override
+
+Widget build(BuildContext context) {
+
+return MaterialApp(
+
+title: 'E-Commerce App',
+
+debugShowCheckedModeBanner: false,
+
+theme: ThemeData(
+
+useMaterial3: true,
+
+colorScheme: ColorScheme.fromSeed(
+
+seedColor: const Color(0xFF0D6EFD),
+
+brightness: Brightness.light,
+
+),
+
+),
+
+home: const MainNavigationScreen(),
+
+);
+
+}
+
+}
+
+
+// Data Models
+
+class Product {
+
+final String id;
+
+final String name;
+
+final double price;
+
+final String category;
+
+final String imageUrl;
+
+final double rating;
+
+
+Product({
+
+required this.id,
+
+required this.name,
+
+required this.price,
+
+required this.category,
+
+required this.imageUrl,
+
+required this.rating,
+
+});
+
+}
+
+
+class OrderItem {
+
+final Product product;
+
+int quantity;
+
+
+OrderItem({required this.product, this.quantity = 1});
+
+}
+
+
+// Main Navigation Screen with Bottom Bars
+
+class MainNavigationScreen extends StatefulWidget {
+
+const MainNavigationScreen({Super.key});
+
+
+@override
+
+State createState() => _MainNavigationScreenState();
+
+}
+
+
+class _MainNavigationScreenState extends State {
+
+int _currentIndex = 0;
+
+
+final List _products = [
+
+Product(
+
+id: '1',
+
+name: 'Wireless Kulaklyk',
+
+price: 450.0,
+
+category: 'Elektronika',
+
+imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500',
+
+rating: 4.8,
+
+),
+
+Product(
+
+id: '2',
+
+name: 'Sport Aýakgap (Krossowka)',
+
+price: 620.0,
+
+category: 'Eşikler',
+
+imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500',
+
+rating: 4.5,
+
+),
+
+Product(
+
+id: '3',
+
+name: 'Akylly Sagat (SmartWatch)',
+
+price: 1200.0,
+
+category: 'Elektronika',
+
+imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
+
+rating: 4.9,
+
+),
+
+];
+
+
+final List _cart = [];
+
+final List _wishlist = [];
+
+
+void _addToCart(Product product) {
+
+setState(() {
+
+final index = _cart.indexWhere((item) => item.product.id == product.id);
+
+if (index >= 0) {
+
+_cart[index].quantity++;
+
+} else {
+
+_cart.add(OrderItem(product: product));
+
+}
+
+});
+
+ScaffoldMessenger.of(context).showSnackBar(
+
+SnackBar(content: Text('${product.name} sebede goşuldy!')),
+
+);
+
+}
+
+
+void _toggleWishlist(Product product) {
+
+setState(() {
+
+if (_wishlist.contains(product)) {
+
+_wishlist.remove(product);
+
+} else {
+
+_wishlist.add(product);
+
+}
+
+});
+
+}
+
+
+void _addProduct(Product product) {
+
+setState(() {
+
+_products.add(product);
+
+});
+
+}
+
+
+@override
+
+Widget build(BuildContext context) {
+
+final screens = [
+
+CustomerHomeScreen(
+
+products: _products,
+
+cart: _cart,
+
+wishlist: _wishlist,
+
+onAddToCart: _addToCart,
+
+onToggleWishlist: _toggleWishlist,
+
+),
+
+CourierPanelScreen(),
+
+AdminPanelScreen(onAddProduct: _addProduct),
+
+];
+
+
+return Scaffold(  
+  body: screens[_currentIndex],  
+  bottomNavigationBar: NavigationBar(  
+    selectedIndex: _currentIndex,  
+    onDestinationSelected: (index) {  
+      setState(() {  
+        _currentIndex = index;  
+      });  
+    },  
+    destinations: const [  
+      NavigationDestination(icon: Icon(Icons.store), label: 'Dükany'),  
+      NavigationDestination(icon: Icon(Icons.local_shipping), label: 'Kuryer'),  
+      NavigationDestination(icon: Icon(Icons.admin_panel_settings), label: 'Admin'),  
+    ],  
+  ),  
+);  
+
+
+
+}
+
+}
+
+
+// 1. CUSTOMER HOME SCREEN
+
+class CustomerHomeScreen extends StatefulWidget {
+
+final List products;
+
+final List cart;
+
+final List wishlist;
+
+final Function(Product) onAddToCart;
+
+final Function(Product) onToggleWishlist;
+
+
+const CustomerHomeScreen({
+
+Super.key,
+
+required this.products,
+
+required this.cart,
+
+required this.wishlist,
+
+required this.onAddToCart,
+
+required this.onToggleWishlist,
+
+});
+
+
+@override
+
+State createState() => _CustomerHomeScreenState();
+
+}
+
+
+class _CustomerHomeScreenState extends State {
+
+String _selectedCategory = 'Ähli';
+
+String _searchQuery = '';
+
+
+@override
+
+Widget build(BuildContext context) {
+
+final filteredProducts = widget.products.where((p) {
+
+final matchesCategory = _selectedCategory == 'Ähli' || p.category == _selectedCategory;
+
+final matchesSearch = p.name.toLowerCase().contains(_searchQuery.toLowerCase());
+
+return matchesCategory && matchesSearch;
+
+}).toList();
+
+
+int totalCartCount = widget.cart.fold(0, (sum, item) => sum + item.quantity);  
+
+return Scaffold(  
+  appBar: AppBar(  
+    title: const Text('Online Dükan'),  
+    actions: [  
+      Stack(  
+        alignment: Alignment.center,  
+        children: [  
+          IconButton(  
+            icon: const Icon(Icons.shopping_cart),  
+            onPressed: () {  
+              Navigator.push(  
+                context,  
+                MaterialPageRoute(  
+                  builder: (context) => CartScreen(cart: widget.cart),  
+                ),  
+              );  
+            },  
+          ),  
+          if (totalCartCount > 0)  
+            Positioned(  
+              right: 8,  
+              top: 8,  
+              child: CircleAvatar(  
+                radius: 9,  
+                backgroundColor: Colors.red,  
+                child: Text(  
+                  '$totalCartCount',  
+                  style: const TextStyle(color: Colors.white, fontSize: 10),  
+                ),  
+              ),  
+            )  
+        ],  
+      )  
+    ],  
+  ),  
+  body: Column(  
+    children: [  
+      // Search & Filter  
+      Padding(  
+        padding: const EdgeInsets.all(12.0),  
+        child: TextField(  
+          onChanged: (val) => setState(() => _searchQuery = val),  
+          decoration: InputDecoration(  
+            hintText: 'Haryt gözle...',  
+            prefixIcon: const Icon(Icons.search),  
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),  
+          ),  
+        ),  
+      ),  
+      SingleChildScrollView(  
+        scrollDirection: Axis.horizontal,  
+        child: Row(  
+          children: ['Ähli', 'Elektronika', 'Eşikler', 'Öý harytlary'].map((cat) {  
+            return Padding(  
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),  
+              child: FilterChip(  
+                label: Text(cat),  
+                selected: _selectedCategory == cat,  
+                onSelected: (selected) {  
+                  setState(() => _selectedCategory = cat);  
+                },  
+              ),  
+            );  
+          }).toList(),  
+        ),  
+      ),  
+      const SizedBox(height: 10),  
+      // Product Grid  
+      Expanded(  
+        child: GridView.builder(  
+          padding: const EdgeInsets.all(12),  
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(  
+            crossAxisCount: 2,  
+            childAspectRatio: 0.72,  
+            crossAxisSpacing: 10,  
+            mainAxisSpacing: 10,  
+          ),  
+          itemCount: filteredProducts.length,  
+          itemBuilder: (context, index) {  
+            final product = filteredProducts[index];  
+            final isWished = widget.wishlist.contains(product);  
+
+            return Card(  
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),  
+              child: Column(  
+                crossAxisAlignment: CrossAlignment.start,  
+                children: [  
+                  Stack(  
+                    children: [  
+                      ClipRRect(  
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),  
+                        child: Image.network(  
+                          product.imageUrl,  
+                          height: 120,  
+                          width: double.infinity,  
+                          fit: BoxFit.cover,  
+                        ),  
+                      ),  
+                      Positioned(  
+                        right: 4,  
+                        top: 4,  
+                        child: IconButton(  
+                          icon: Icon(  
+                            isWished ? Icons.favorite : Icons.favorite_border,  
+                            color: isWished ? Colors.red : Colors.grey,  
+                          ),  
+                          onPressed: () => widget.onToggleWishlist(product),  
+                        ),  
+                      )  
+                    ],  
+                  ),  
+                  Padding(  
+                    padding: const EdgeInsets.all(8.0),  
+                    child: Column(  
+                      crossAxisAlignment: CrossAlignment.start,  
+                      children: [  
+                        Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),  
+                        Text('${product.price} TMT', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),  
+                        Row(  
+                          children: [  
+                            const Icon(Icons.star, size: 16, color: Colors.amber),  
+                            Text('${product.rating}'),  
+                          ],  
+                        ),  
+                        const SizedBox(height: 6),  
+                        SizedBox(  
+                          width: double.infinity,  
+                          child: ElevatedButton(  
+                            style: ElevatedButton.styleFrom(  
+                              backgroundColor: Theme.of(context).colorScheme.primary,  
+                              foregroundColor: Colors.white,  
+                            ),  
+                            onPressed: () => widget.onAddToCart(product),  
+                            child: const Text('Sebede goş', style: TextStyle(fontSize: 12)),  
+                          ),  
+                        )  
+                      ],  
+                    ),  
+                  )  
+                ],  
+              ),  
+            );  
+          },  
+        ),  
+      )  
+    ],  
+  ),  
+);  
+
+
+
+}
+
+}
+
+
+// CART & CHECKOUT SCREEN
+
+class CartScreen extends StatefulWidget {
+
+final List cart;
+
+const CartScreen({Super.key, required this.cart});
+
+
+@override
+
+State createState() => _CartScreenState();
+
+}
+
+
+class _CartScreenState extends State {
+
+double get totalPrice => widget.cart.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
+
+
+@override
+
+Widget build(BuildContext context) {
+
+return Scaffold(
+
+appBar: AppBar(title: const Text('Sebet')),
+
+body: widget.cart.isEmpty
+
+? const Center(child: Text('Sebet boş'))
+
+: Column(
+
+children: [
+
+Expanded(
+
+child: ListView.builder(
+
+itemCount: widget.cart.length,
+
+itemBuilder: (context, index) {
+
+final item = widget.cart[index];
+
+return ListTile(
+
+leading: Image.network(item.product.imageUrl, width: 50, fit: BoxFit.cover),
+
+title: Text(item.product.name),
+
+subtitle: Text('${item.product.price} TMT'),
+
+trailing: Row(
+
+mainAxisSize: MainAxisSize.min,
+
+children: [
+
+IconButton(
+
+icon: const Icon(Icons.remove_circle_outline),
+
+onPressed: () {
+
+setState(() {
+
+if (item.quantity > 1) {
+
+item.quantity--;
+
+} else {
+
+widget.cart.removeAt(index);
+
+}
+
+});
+
+},
+
+),
+
+Text('${item.quantity}'),
+
+IconButton(
+
+icon: const Icon(Icons.add_circle_outline),
+
+onPressed: () {
+
+setState(() => item.quantity++);
+
+},
+
+),
+
+],
+
+),
+
+);
+
+},
+
+),
+
+),
+
+Container(
+
+padding: const EdgeInsets.all(16),
+
+decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: const BorderRadius.vertical(top: Radius.circular(16))),
+
+child: Column(
+
+children: [
+
+Row(
+
+mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+children: [
+
+const Text('Jemi baha:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+Text('$totalPrice TMT', style: const TextStyle(fontSize: 18, color: Colors.green, fontWeight: FontWeight.bold)),
+
+],
+
+),
+
+const SizedBox(height: 12),
+
+SizedBox(
+
+width: double.infinity,
+
+child: ElevatedButton(
+
+onPressed: () {
+
+showDialog(
+
+context: context,
+
+builder: (ctx) => AlertDialog(
+
+title: const Text('Sargyt Edildi!'),
+
+content: const Text('Sargydyňyz üstünlikli kabul edildi. Kuryer tiz arada habarlaşar.'),
+
+actions: [
+
+TextButton(
+
+onPressed: () {
+
+setState(() => widget.cart.clear());
+
+Navigator.pop(ctx);
+
+Navigator.pop(context);
+
+},
+
+child: const Text('OK'),
+
+)
+
+],
+
+),
+
+);
+
+},
+
+child: const Text('Sargydy Tassykla (Checkout)'),
+
+),
+
+)
+
+],
+
+),
+
+)
+
+],
+
+),
+
+);
+
+}
+
+}
+
+
+// 2. COURIER PANEL SCREEN
+
+class CourierPanelScreen extends StatefulWidget {
+
+const CourierPanelScreen({Super.key});
+
+
+@override
+
+State createState() => _CourierPanelScreenState();
+
+}
+
+
+class _CourierPanelScreenState extends State {
+
+String orderStatus = 'Taýýarlanýar';
+
+
+@override
+
+Widget build(BuildContext context) {
+
+return Scaffold(
+
+appBar: AppBar(title: const Text('Kuryer Moduly')),
+
+body: Padding(
+
+padding: const EdgeInsets.all(16.0),
+
+child: Card(
+
+child: Padding(
+
+padding: const EdgeInsets.all(16.0),
+
+child: Column(
+
+crossAxisAlignment: CrossAlignment.start,
+
+mainAxisSize: MainAxisSize.min,
+
+children: [
+
+const Text('Sargyt #1042', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+const SizedBox(height: 8),
+
+const Text('Müşderi: Aman Amanow'),
+
+const Text('Salgysy: Aşgabat ş., Magtymguly şaýoly 45'),
+
+const Text('Tel: +993 65 123456'),
+
+const SizedBox(height: 12),
+
+Text('Status: $orderStatus', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+
+const SizedBox(height: 16),
+
+Row(
+
+children: [
+
+Expanded(
+
+child: ElevatedButton(
+
+onPressed: () => setState(() => orderStatus = 'Kuryer Ýolda'),
+
+child: const Text('Ýolda'),
+
+),
+
+),
+
+const SizedBox(width: 8),
+
+Expanded(
+
+child: ElevatedButton(
+
+style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+
+onPressed: () => setState(() => orderStatus = 'Gowşuryldy'),
+
+child: const Text('Gowşuryldy'),
+
+),
+
+),
+
+],
+
+)
+
+],
+
+),
+
+),
+
+),
+
+),
+
+);
+
+}
+
+}
+
+
+// 3. ADMIN PANEL SCREEN
+
+class AdminPanelScreen extends StatefulWidget {
+
+final Function(Product) onAddProduct;
+
+const AdminPanelScreen({Super.key, required this.onAddProduct});
+
+
+@override
+
+State createState() => _AdminPanelScreenState();
+
+}
+
+
+class _AdminPanelScreenState extends State {
+
+final _nameController = TextEditingController();
+
+final _priceController = TextEditingController();
+
+
+@override
+
+Widget build(BuildContext context) {
+
+return Scaffold(
+
+appBar: AppBar(title: const Text('Admin Panel')),
+
+body: Padding(
+
+padding: const EdgeInsets.all(16.0),
+
+child: Column(
+
+crossAxisAlignment: CrossAlignment.start,
+
+children: [
+
+const Text('Täze Haryt Goşmak', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+const SizedBox(height: 12),
+
+TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Harydyň ady')),
+
+TextField(controller: _priceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Bahasy (TMT)')),
+
+const SizedBox(height: 16),
+
+SizedBox(
+
+width: double.infinity,
+
+child: ElevatedButton(
+
+onPressed: () {
+
+if (_nameController.text.isNotEmpty && _priceController.text.isNotEmpty) {
+
+final newProduct = Product(
+
+id: DateTime.now().toString(),
+
+name: _nameController.text,
+
+price: double.parse(_priceController.text),
+
+category: 'Elektronika',
+
+imageUrl: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500',
+
+rating: 5.0,
+
+);
+
+widget.onAddProduct(newProduct);
+
+_nameController.clear();
+
+_priceController.clear();
+
+ScaffoldMessenger.of(context).showSnackBar(
+
+const SnackBar(content: Text('Täze haryt katalog goşuldy!')),
+
+);
+
+}
+
+},
+
+child: const Text('Harydy Sakla'),
+
+),
+
+)
+
+],
+
+),
+
+),
+
+);
+
+}
+
+}
+
+Şu koda aşakdakylary goşup ber
+
+Firebase Authentication — login/register
+
+Firestore — Products/Orders/Customers
+
+Firebase Storage — haryt suratlary
+
+Firebase Cloud Messaging — kuryere Push Notification
+
+Google Maps — kuryeriň GPS ugry
+
+Firebase Security Rules — Admin/Customer/Courier hukuklary
+
+Payment API — Bank/Altyn Asyr integrasiýasy
+
+Cloud Functions — sargyt/status awtomatizasiýasy
+
+Glassmorfizm
+
+Liqiud glass
+
+Neon designed and database need
+
+Seniň roluň: Tejribeli E-commerce Full Developer app programmist
+
+
+Maňa döwrebap, tiz işleýän we amaly "Internet dükany" (E-commerce) programmasyny döredip ber.
+
+
+
+
+Esasy sahypa we haryt katalogy:
+
+
+
+
+
+
+Haryt gözleg meýdançasy (Search bar) we kategoriýalar boýunça filtrlemek (Meselem: Elektronika, Eşikler, Öý harytlary).
+
+
+Haryt kartoçkalary: Harydyň suraty, ady, bahasy, reýtingi (ýyldyzlar) we "Sebede goş" düwmesi.
+
+
+Müşderileriň halan harytlaryny saklamak üçin "Isleg sanawy" (Wishlist / Halanylýanlar).
+
+
+
+
+
+
+Interaktiw Sebet we Sargyt Etmek (Checkout):
+
+
+
+
+
+
+Ýokarky sag burçda sebetdäki harytlaryň sanyny görkezýän nyşan (Cart badge).
+
+
+Sebet sahypasy (ýa-da gapdaldan açylýan Modal): Harytlaryň sanyny köpeltmek/azaltmak, öçürmek we umumy summasyny awtomatiki hasaplamak.
+
+
+Sargyt etmek (Checkout) sahypasy: Ulanyjynyň ady, adresi, telefon belgisi we töleg görnüşini (Nagt / Bank karty) saýlamak üçin forma.
+
+
+
+
+
+
+Tehniki we Dizayn talaplary:
+
+
+
+
+
+
+döwrebap, gözleg üçin amatly we mobil telefonlara doly uýgunlaşdyrylan (Responsive) dizayn.
+
+
+Maglumatlary brauzeriň LocalStorage ýatkeşliginde sakla (sebetdäki harytlar sahypa täzelense-de ýitmesin).
+
+
+Programma görkezmek üçin 6-8 sany mysal haryt maglumatlaryny (Unsplash surat linkleri, bahalary we düşündirişleri bilen) goş.
+
+Seniň roluň: Tejribeli Full Developer programmist ( hünärmeni)
+
+
+
+
+Maňa modern, minimalist we amatly "Gündelik Tabşyryklar" (Task & Habit Tracker)programmasyny döredip ber.
+
+
+
+
+Esasy funksiýalar:
+
+
+
+
+
+
+Täze tabşyryk goşmak (ady, senesi we önümçilik derejesi: Yönekeý / Wajyp).
+
+
+Tabşyrygy "Ýerine ýetirildi" diýip bellemek we sanawdan öçürmek.
+
+
+Süzgüçler: Tabşyryklary "Ähli", "Açyk" we "Tamamlanan" diýen bölümlere görä filtremek.
+
+
+Maglumatlary saklamak: Brauzeriň LocalStorage ýatkeşligini ulan (sahypa täzelense-de girizilen maglumatlar ýitmesin).
+
+
+
+
+
+
+Dizayn we Interfeýs (UI/UX):
+
+
+
+
+
+
+Modern, arassa we arassa stil (owadan stilleri).
+
+
+Gara reژim (Dark Mode) we ýagty reژim (Light Mode) çalyşýan düwme.
+
+
+Telefonlarda we kompýuterlerde birdeň gowy görünýän (Responsive) düzüliş.
+
+
+
+
+
+
+Koduň görnüşi:
+
+
+
+
+
+
+Ähli kody () birleşdirilen we derrew açyp bolýan ýeke-täk faýl görnüşinde (ýa-da arassa komponentler türünde) taýýarla.
+
+​1. Müşderi Bölümi (Customer Portal / App)
+
+​Müşderiler üçin niýetlenen bu bölüm saýtyň ýa-da mobil app-yň esasy ýüzüdudyr:
+
+​Haryt gözleg we Sebet: Harytlary görýärler, süzgüçden (filter) geçirýärler we sebede goşýarlar.
+
+​Şahsy Profil: Öz eltip bermeli salgylaryny (öý/iş salgysy), telefon belgilerini we öňki eden sargytlarynyň taryhyny görýärler.
+
+​Sargydy Yzarramak: Müşderi öz beren sargydynyň haýsy tapgyrdadygyny izläp bilýär ("Taýýarlanýar" ➔ "Kuryer ýolda" ➔ "Gowşuryldy").
+
+​2. Kuryer (Dostawka) Bölümi
+
+​Kuryer diňe özüne degişli sargytlary görmek we eltip bermek amallaryny dolandyrmak üçin aýratyn mobil app ýa-da sazlanan web-panel ulanýar:
+
+​Täze Sargyt Bildirişleri: Admin sargyda kuryer belledikde, kuryeriň telefonyna awtomatik bildiriş (Push notification) barýar.
+
+​Salgy we Karta: Gowşurylmaly adamyň ady, telefony we eltip bermeli ýeri (Karta / GPS ugry) görünýär.
+
+​Statusy Üýtgetmek: Kuryer harydy alanda "Ýolda", Müşderä gowşuryp nagt ýa-da terminal tölegini alanda "Gowşuryldy" diýen düwmä basýar.
+
+​Dostawka Hasabaty: Gün içinde näçe sargyt eltip berendigini we dostawka töleginden näçe gazanandygyny görýär.
+
+​Müşderi app-dan sargyt berýär.
+
+​Admin sargydy görýär we ony boş duran Kuryere berýär.
+
+​Kuryer telefonda sargydy kabul edip, harydy müşderä eltýär.
+
+​Admin panele girmek: Dükanyň eýesi öz admin login we paroly bilen sistema girýär.
+
+​Formany doldurmak: "Täze haryt goş" düwmesine basýar we ekranda açylan forma maglumatlary girizýär:
+
+​Harydyň ady: Meselem, Nike Krossowka
+
+​Bahasy: Meselem, 450 TMT
+
+​Kategoriýasy: Aýakgaplar
+
+​Suraty: Telefonyndan ýa-da kompýuterinden harydyň suratyny saýlap ýükleýär.
+
+​Ýatda saklamak: "Ýatda sakla" (Save) düwmesine basylanda, programma bu maglumatlary awtomatik Maglumat Binýadyna (Database) ýazýar.
+
+​Netije: Saýtda ýa-da mobil app-da bu täze haryt dessine Müşderilere görünip başlaýar
+
+​1. Harytlar Katalogy (Products & Inventory)
+
+​Harytlary dolandyrmak: Täze haryt goşmak, suratlaryny/wideo ýüklemek, bahalaryny, görnüşlerini (reňk, ölçeg) we beýanyny girizmek.
+
+​Kategoriýalar we Brendler: Harytlary esasy we kiçi kategoriýalara, brendlere bölmek.
+
+​Ammar Galygy (Stock Management): Ammarda näçe haryt galandygyny izlemek we ammar azalan gününde duýduryş bermek.
+
+​Aksiýalar we Arzanlaşyklar: Promo-kodlary döretmek, wagtlaýyn arzanlaşyklary (Sale) sazlamak.
+
+​2. Sargytlar (Order Management)
+
+​Sargyt Taryhy we Statuslar: Täze gelen sargytlaryň sanawy we olaryň statuslaryny üýtgetmek (Täze ➔ Tassyklanan ➔ Ýolda ➔ Gowşuryldy ➔ Goýbolsun edildi).
+
+​Müşderi Maglumaty: Sargyt eden adamyň ady, telefony, gowşurylyş salgysy we töleg usuly.
+
+​Faktura / Çek: Sargyt üçin taýýar PDF çek ýa-da faktura çap etmek (Print Invoice).
+
+​3. Müşderiler (Customers / CRM)
+
+​Ulanyjylaryň Sanawy: Registrasiýa bolan ähli müşderileriň sanawy, e-mail we telefon belgileri.
+
+​Satyş Taryhy: Her bir müşderiniň öň eden sargytlary we jemlän bonuslary.
+
+​Bildirişler: Müşderilere täze aksiýalar ýa-da sargyt statusy barada SMS / Email / Push bildiriş ibermek.
+
+​4. Töleg we Dostawka Sazlamalary (Payment & Shipping)
+
+​Töleg Usullary: Online töleg (Altyn Asyr / Bank API), terminal ýa-da gowşurylanda nagt töleg opsiýalaryny birleşdirmek we öçürmek.
+
+​Dostawka Zonalary: Şäher içi, welaýatlar ýa-da etraplar boýunça eltip bermek bahasyny we wagtyny bellemek.
+
+​5. Analitika we Hasabatlar (Analytics & Reports)
+
+​Satyş Grafiki: Günlük, aýlyk we ýyllyk girdejileriň dinamikasy.
+
+​Top Harytlar: Iň köp satylýan we iň köp görlen harytlaryň statistikasy.
+
+​Ammar Hasabaty: Haýsy harytlaryň gowşak satylýandygyny (stagnant inventory) we nämäniň tiz gutarýandygyny derňemek.
+
+​6. Sistema Sazlamalary we Hukuklar (Settings & Roles)
+
+​Ulanyjy Hukuklary (Roles & Permissions): Admin paneline girýän işgärlere dürli hukuklary bermek (Meselem: Meneger diňe sargytlary görýär, Kontent-meneger diňe haryt goşýar).
+
+
+
+
+
+
+Onlaýn Dükan Müşderä Tabşyrylanda Näme Berilmeli?
+
+​Dolandyryş Paneli (Admin Panel):
+
+​Sargytlary kabul etmek, haryt goşmak/ayrmak, bahalary we aksiýalary üýtgetmek üçin Admin login-paroly.
+
+​Töleg we Gowşuryş Ulgamlary (Integrations):
+
+​Bank kartlary arkaly töleg kabul edýän ulgamlar (Altyn Asyr töleg terminaly/API) ýa-da naǵt töleg sazlamalary.
+
+​Şäher içi/welaýat gowşuryş (dostawka) bahalandyryş algoritmi.
+
+​Serwer we Domen (Hosting & Domain):
+
+​Saýty müşderiniň öz domenine (myshop.com) baglamak we serwerde (VPS/Cloud) SSL (https) şahadatnamasy bilen işletmek.
+
+​Kullanma Gollanmasy (Training & Documentation):
+
+​Müşderä ýa-da dükanyň satyjysyna harytlary we sargytlary nähili dolandyrýandygyny gorsin.
+
+Doly koduny yazyp ber.Dart belgileme dilinde
+
+
+
+
